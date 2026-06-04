@@ -1,4 +1,4 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwClvt1DoOa9-emPUu_onPx0sh2GN3mOayttZSOT4Q7NyOUTQt8EjKjQXu173G66mRypg/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyA7YfwU0pbupDR8dC1dfsPJ7MVnJvi1NFnFllNVTAPn9fW-C6UJY5m2pEe9k5iR6t3AQ/exec";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
