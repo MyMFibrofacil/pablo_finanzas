@@ -19,6 +19,7 @@ function prepareForm(form) {
   form.action = WEB_APP_URL;
   form.method = "POST";
   form.target = "remoteSubmitFrame";
+  form.querySelector("#redirectUrlInput").value = new URL("./callback.html", window.location.href).href;
 
   const tipo = form.querySelector('[name="tipo_registro"]').value;
   const startMonthInput = form.querySelector('[name="start_month"]');
@@ -58,6 +59,9 @@ document.querySelector("#tipoRegistro").addEventListener("change", event => rend
 renderMode(document.querySelector("#tipoRegistro").value);
 
 window.addEventListener("message", event => {
+  if (event.origin !== window.location.origin) {
+    return;
+  }
   if (!event.data || typeof event.data !== "object") {
     return;
   }

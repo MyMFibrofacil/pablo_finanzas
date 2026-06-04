@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Callback</title>
+</head>
+<body>
+  <script>
+    const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+    const params = new URLSearchParams(hash);
+    const rawPayload = params.get("payload") || "{}";
+    let payload = { ok: false, error: "Respuesta remota invalida" };
+
+    try {
+      payload = JSON.parse(rawPayload);
+    } catch (error) {
+      payload = { ok: false, error: "No se pudo leer la respuesta remota" };
+    }
+
+    window.parent.postMessage(payload, window.location.origin);
+  </script>
+</body>
+</html>
