@@ -4,31 +4,6 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formPayload(form) {
-  const data = Object.fromEntries(new FormData(form).entries());
-  data.action = "create_entry";
-  if (data.tipo_registro === "gasto") {
-    data.installments = "";
-    data.start_month = "";
-  }
-  if (data.tipo_registro === "cuota" && !data.start_month) {
-    data.start_month = data.fecha.slice(0, 7);
-  }
-  return data;
-}
-
-async function sendEntry(payload) {
-  const response = await fetch(WEB_APP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
-  if (!response.ok || !data.ok) {
-    throw new Error(data.error || "No se pudo guardar");
-  }
-}
-
 function renderMode(tipo) {
   document.querySelector("#gastoFields").classList.toggle("hidden", tipo !== "gasto");
   document.querySelector("#cuotaFields").classList.toggle("hidden", tipo !== "cuota");
@@ -40,19 +15,61 @@ function setStatus(message, kind) {
   box.className = `status ${kind}`;
 }
 
+function prepareForm(form) {
+  form.action = WEB_APP_URL;
+  form.method = "POST";
+  form.target = "remoteSubmitFrame";
+
+  const tipo = form.querySelector('[name="tipo_registro"]').value;
+  const startMonthInput = form.querySelector('[name="start_month"]');
+  const installmentsInput = form.querySelector('[name="installments"]');
+  const txTypeInput = form.querySelector('[name="tx_type"]');
+  const fecha = form.querySelector('[name="fecha"]').value;
+
+  if (tipo === "gasto") {
+    startMonthInput.value = "";
+    installmentsInput.value = "";
+  }
+
+  if (tipo === "cuota") {
+    if (!startMonthInput.value && fecha) {
+      startMonthInput.value = fecha.slice(0, 7);
+    }
+    if (!installmentsInput.value) {
+      installmentsInput.value = "1";
+    }
+  }
+
+  if (tipo !== "gasto") {
+    txTypeInput.value = "";
+  }
+}
+
+function resetAfterSuccess(form) {
+  form.reset();
+  form.querySelector('input[name="fecha"]').value = today();
+  form.querySelector('[name="tipo_registro"]').value = "gasto";
+  renderMode("gasto");
+}
+
+const remoteEntryForm = document.querySelector("#remoteEntryForm");
 document.querySelector('input[name="fecha"]').value = today();
 document.querySelector("#tipoRegistro").addEventListener("change", event => renderMode(event.target.value));
 renderMode(document.querySelector("#tipoRegistro").value);
 
-document.querySelector("#remoteEntryForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  try {
-    await sendEntry(formPayload(event.currentTarget));
-    event.currentTarget.reset();
-    document.querySelector('input[name="fecha"]').value = today();
-    renderMode("gasto");
-    setStatus("Entrada guardada. Se importara en la proxima sincronizacion.", "ok");
-  } catch (error) {
-    setStatus(error.message, "error");
+window.addEventListener("message", event => {
+  if (!event.data || typeof event.data !== "object") {
+    return;
   }
+  if (event.data.ok) {
+    resetAfterSuccess(remoteEntryForm);
+    setStatus("Entrada guardada. Se importara en la proxima sincronizacion.", "ok");
+    return;
+  }
+  setStatus(event.data.error || "No se pudo guardar", "error");
+});
+
+remoteEntryForm.addEventListener("submit", event => {
+  prepareForm(event.currentTarget);
+  setStatus("Enviando...", "ok");
 });

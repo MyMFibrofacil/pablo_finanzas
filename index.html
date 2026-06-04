@@ -16,6 +16,8 @@
       </div>
 
       <form id="remoteEntryForm" class="form">
+        <input type="hidden" name="action" value="create_entry">
+
         <label>PIN
           <input name="pin" type="password" inputmode="numeric" required>
         </label>
@@ -70,6 +72,8 @@
         <button type="submit">Guardar</button>
         <div id="statusBox" class="status hidden"></div>
       </form>
+
+      <iframe name="remoteSubmitFrame" id="remoteSubmitFrame" class="hidden"></iframe>
     </section>
   </main>
 
