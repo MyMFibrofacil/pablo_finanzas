@@ -15,6 +15,22 @@ function setStatus(message, kind) {
   box.className = `status ${kind}`;
 }
 
+function applyRemoteResult(payload) {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+  if (payload.ok) {
+    resetAfterSuccess(remoteEntryForm);
+    setStatus("Entrada guardada. Se importara en la proxima sincronizacion.", "ok");
+    return true;
+  }
+  if (payload.error) {
+    setStatus(payload.error || "No se pudo guardar", "error");
+    return true;
+  }
+  return false;
+}
+
 function prepareForm(form) {
   form.action = WEB_APP_URL;
   form.method = "POST";
@@ -54,6 +70,7 @@ function resetAfterSuccess(form) {
 }
 
 const remoteEntryForm = document.querySelector("#remoteEntryForm");
+const remoteSubmitFrame = document.querySelector("#remoteSubmitFrame");
 document.querySelector('input[name="fecha"]').value = today();
 document.querySelector("#tipoRegistro").addEventListener("change", event => renderMode(event.target.value));
 renderMode(document.querySelector("#tipoRegistro").value);
@@ -62,15 +79,27 @@ window.addEventListener("message", event => {
   if (event.origin !== window.location.origin) {
     return;
   }
-  if (!event.data || typeof event.data !== "object") {
-    return;
+  applyRemoteResult(event.data);
+});
+
+remoteSubmitFrame.addEventListener("load", () => {
+  try {
+    const currentUrl = remoteSubmitFrame.contentWindow.location.href;
+    if (!currentUrl || !currentUrl.startsWith(window.location.origin)) {
+      return;
+    }
+    const frameUrl = new URL(currentUrl);
+    const rawPayload = frameUrl.hash.startsWith("#payload=")
+      ? frameUrl.hash.slice("#payload=".length)
+      : "";
+    if (!rawPayload) {
+      return;
+    }
+    const payload = JSON.parse(decodeURIComponent(rawPayload));
+    applyRemoteResult(payload);
+  } catch (error) {
+    // The iframe is cross-origin until it reaches callback.html.
   }
-  if (event.data.ok) {
-    resetAfterSuccess(remoteEntryForm);
-    setStatus("Entrada guardada. Se importara en la proxima sincronizacion.", "ok");
-    return;
-  }
-  setStatus(event.data.error || "No se pudo guardar", "error");
 });
 
 remoteEntryForm.addEventListener("submit", event => {
